@@ -1,0 +1,50 @@
+{
+  "name": "@makesense2022/slate-editor",
+  "version": "1.0.0",
+  "description": "A powerful Slate.js based rich text editor with Notion-like features",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
+    "slate": "^0.124.0",
+    "slate-history": "^0.113.0",
+    "slate-react": "^0.117.0"
+  },
+  "dependencies": {
+    "katex": "^0.16.22"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/katex": "^0.16.7",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "slate": "^0.124.0",
+    "slate-history": "^0.113.0",
+    "slate-react": "^0.117.0",
+    "typescript": "^5.8.3"
+  }
+}

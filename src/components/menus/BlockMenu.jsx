@@ -226,7 +226,6 @@ export function BlockMenu({ isOpen, onClose, blockPath, position }) {
 
     const handleClickOutside = (event) => {
       if (isOpen && menuRef.current && !menuRef.current.contains(event.target)) {
-        console.log('Clicking outside BlockMenu, closing...'); // 调试日志
         onClose();
       }
     };

@@ -233,9 +233,7 @@ export function SlashMenu({ isOpen, onClose, target }) {
   // 点击外部关闭菜单
   useEffect(() => {
     const handleClickOutside = (event) => {
-      console.log('Click detected, isOpen:', isOpen, 'menuRef:', !!menuRef.current, 'contains:', menuRef.current?.contains(event.target)); // 调试日志
       if (isOpen && menuRef.current && !menuRef.current.contains(event.target)) {
-        console.log('Clicking outside SlashMenu, closing...'); // 调试日志
         event.preventDefault();
         event.stopPropagation();
         onClose();
@@ -244,7 +242,6 @@ export function SlashMenu({ isOpen, onClose, target }) {
 
     const handleEscapeKey = (event) => {
       if (isOpen && event.key === 'Escape') {
-        console.log('Escape key pressed, closing SlashMenu...'); // 调试日志
         onClose();
       }
     };

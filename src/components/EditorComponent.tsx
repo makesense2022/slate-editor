@@ -2,20 +2,20 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { createEditor, Editor, Transforms, Range, Element as SlateElement } from 'slate';
 import { Slate, Editable, withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
-import { useDebounce } from '../hooks/useDebounce';
-import { Toolbar } from './menus/Toolbar';
-import { BlockWrapper } from './elements/BlockWrapper';
-import { SlashMenu } from './menus/SlashMenu';
-import { ImageElement } from './elements/ImageElement';
-import { FormulaBlock } from './elements/FormulaBlock';
-import { TodoElement } from './elements/TodoElement';
-import { CodeBlockElement } from './elements/CodeBlockElement';
-import { QuoteElement } from './elements/QuoteElement';
-import { DividerElement } from './elements/DividerElement';
-import { ListElement } from './elements/ListElement';
-import { MathElement } from './elements/MathElement';
-import { TableElement, TableRowElement, TableCellElement } from './elements/TableElement';
-import { proseMirrorToSlate, slateToProseMirror } from '../utils/dataConverter';
+import { useDebounce } from '../hooks/useDebounce.js';
+import { Toolbar } from './menus/Toolbar.js';
+import { BlockWrapper } from './elements/BlockWrapper.js';
+import { SlashMenu } from './menus/SlashMenu.js';
+import { ImageElement } from './elements/ImageElement.js';
+import { FormulaBlock } from './elements/FormulaBlock.js';
+import { TodoElement } from './elements/TodoElement.js';
+import { CodeBlockElement } from './elements/CodeBlockElement.js';
+import { QuoteElement } from './elements/QuoteElement.js';
+import { DividerElement } from './elements/DividerElement.js';
+import { ListElement } from './elements/ListElement.js';
+import { MathElement } from './elements/MathElement.js';
+import { TableElement, TableRowElement, TableCellElement } from './elements/TableElement.js';
+import { proseMirrorToSlate, slateToProseMirror } from '../utils/dataConverter.js';
 /**
  * 主编辑器组件
  * @param {Object} props - 组件属性
@@ -79,7 +79,6 @@ export function EditorComponent({
     // 监听触发斜杠菜单事件
     useEffect(() => {
         const handleTriggerSlashMenu = (event) => {
-            console.log('Triggering SlashMenu from custom event'); // 调试日志
             const { path } = event.detail;
             setSlashMenuTarget({ path, offset: 0 });
             setShowSlashMenu(true);
@@ -101,11 +100,6 @@ export function EditorComponent({
       if (onSave) {
         // 如果提供了 onSave 回调，使用它
         await onSave(proseMirrorData);
-      } else {
-        // 否则使用默认的模拟保存
-        console.log('正在保存内容到后端 (ProseMirror 格式):', JSON.stringify(proseMirrorData, null, 2));
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('内容保存成功！');
       }
     } catch (error) {
       console.error('保存内容时出错:', error);
@@ -251,7 +245,6 @@ export function EditorComponent({
           onClick={(e) => {
             // 阻止事件冒泡到编辑器，但保留默认的链接跳转行为
             e.stopPropagation();
-            console.log('Link clicked, opening:', props.leaf.url); // 调试日志
             // 手动打开链接以确保跳转
             window.open(props.leaf.url, '_blank', 'noopener,noreferrer');
           }}
@@ -532,7 +525,6 @@ export function EditorComponent({
                     onClick={(e) => {
                         // 点击编辑器外部区域关闭所有菜单
                         if (e.target === e.currentTarget) {
-                            console.log('Clicking outside editor, closing SlashMenu...'); // 调试日志
                             setShowSlashMenu(false);
                             setSlashMenuTarget(null);
                         }

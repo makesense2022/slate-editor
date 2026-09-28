@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Transforms, Editor, Range } from 'slate';
 import { ReactEditor, useSlate, useFocused, useSelected } from 'slate-react';
-import { BlockMenu } from '../menus/BlockMenu';
+import { BlockMenu } from '../menus/BlockMenu.js';
 
 /**
  * 块容器组件 - 为每个块提供选择、操作等功能
@@ -21,9 +21,6 @@ export function BlockWrapper({ element, children, attributes, readOnly = false, 
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const blockRef = useRef(null);
 
-  // 调试：记录组件渲染
-  console.log('BlockWrapper rendered for element:', element.type, 'showMenu:', showMenu);
-
   // 获取块路径
   const getBlockPath = () => {
     try {
@@ -37,7 +34,6 @@ export function BlockWrapper({ element, children, attributes, readOnly = false, 
 
   // 处理加号按钮点击 - 在下面增加一行并唤起斜杠菜单
   const handlePlusButtonClick = (event) => {
-    console.log('Plus button clicked'); // 调试日志
     event.preventDefault();
     event.stopPropagation();
 
@@ -74,7 +70,6 @@ export function BlockWrapper({ element, children, attributes, readOnly = false, 
 
   // 处理拖拽手柄点击 - 选中当前行并弹出 BlockMenu
   const handleDragHandleClick = (event) => {
-    console.log('Drag handle clicked'); // 调试日志
     event.preventDefault();
     event.stopPropagation();
 

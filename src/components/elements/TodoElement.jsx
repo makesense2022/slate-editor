@@ -1,5 +1,5 @@
 import { Transforms } from 'slate';
-import { ReactEditor, useSlate } from 'slate-react';
+import { ReactEditor, useSlate, useReadOnly } from 'slate-react';
 
 /**
  * 待办事项元素组件
@@ -10,9 +10,11 @@ import { ReactEditor, useSlate } from 'slate-react';
  */
 export function TodoElement({ attributes, element, children }) {
   const editor = useSlate();
+  const readOnly = useReadOnly();
 
   // 切换完成状态
   const toggleChecked = () => {
+    if (readOnly) return;
     try {
       const path = ReactEditor.findPath(editor, element);
       Transforms.setNodes(
@@ -29,10 +31,10 @@ export function TodoElement({ attributes, element, children }) {
     <div {...attributes} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
       <div
         contentEditable={false}
-        onClick={toggleChecked}
+        onClick={readOnly ? undefined : toggleChecked}
         style={{
           marginTop: '2px',
-          cursor: 'pointer',
+          cursor: readOnly ? 'default' : 'pointer',
           userSelect: 'none',
           fontSize: '16px',
           color: element.checked ? '#007AFF' : '#ccc',

@@ -57,7 +57,7 @@ export function TableRowElement({ attributes, element, children }) {
  * @param {React.ReactNode} props.children - 子元素
  */
 export function TableCellElement({ attributes, element, children }) {
-  const isHeader = element.type === 'tableHeader';
+  const isHeader = element.type === 'table-header' || element.type === 'tableHeader';
   const TagName = isHeader ? 'th' : 'td';
   
   const cellStyle = {

@@ -21,14 +21,17 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "pnpm run build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/converter.test.mjs",
+    "test:browser": "npm run build:consumer && node --test tests/editor.browser.test.mjs",
+    "build:consumer": "npm run build && node scripts/build-consumer.mjs"
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "react-dom": "^18.0.0 || ^19.0.0",
+    "react": "^18.2.0 || ^19.0.0",
+    "react-dom": "^18.2.0 || ^19.0.0",
     "slate": "^0.124.0",
     "slate-history": "^0.113.0",
     "slate-react": "^0.117.0"
@@ -37,9 +40,11 @@
     "katex": "^0.16.22"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.7",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@types/katex": "^0.16.7",
+    "esbuild": "0.21.5",
+    "playwright": "1.57.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "slate": "^0.124.0",

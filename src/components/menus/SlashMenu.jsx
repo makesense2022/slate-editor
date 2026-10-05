@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Editor, Transforms, Range } from 'slate';
-import { ReactEditor, useSlate } from 'slate-react';
+import { Editor, Transforms, Element as SlateElement } from 'slate';
+import { ReactEditor, useSlate, useReadOnly } from 'slate-react';
 
 /**
  * 斜杠命令菜单组件
@@ -11,6 +11,7 @@ import { ReactEditor, useSlate } from 'slate-react';
  */
 export function SlashMenu({ isOpen, onClose, target }) {
   const editor = useSlate();
+  const readOnly = useReadOnly();
   const menuRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [search, setSearch] = useState('');
@@ -114,16 +115,20 @@ export function SlashMenu({ isOpen, onClose, target }) {
 
   // 插入块
   const insertBlock = (blockType) => {
-    if (!target) return;
+    if (!target || readOnly) return;
 
     try {
       // 删除 "/" 字符
-      Transforms.delete(editor, {
-        at: {
+      Transforms.select(editor, target);
+      if (target.offset > 0) {
+        const slashRange = {
           anchor: { path: target.path, offset: target.offset - 1 },
           focus: target,
-        },
-      });
+        };
+        if (Editor.string(editor, slashRange) === '/') {
+          Transforms.delete(editor, { at: slashRange });
+        }
+      }
 
       if (blockType === 'image') {
         const url = prompt('请输入图片 URL:', 'https://via.placeholder.com/400x200');
@@ -167,7 +172,7 @@ export function SlashMenu({ isOpen, onClose, target }) {
 
         // 转换当前块
         const [match] = Editor.nodes(editor, {
-          match: n => Editor.isBlock(editor, n),
+          match: n => SlateElement.isElement(n) && Editor.isBlock(editor, n),
         });
 
         if (match) {
@@ -186,6 +191,12 @@ export function SlashMenu({ isOpen, onClose, target }) {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (!isOpen) return;
+
+      // Consume menu navigation before Editable handles Enter/arrow keys.
+      if (['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(event.key)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
 
       switch (event.key) {
         case 'ArrowDown':
@@ -220,8 +231,8 @@ export function SlashMenu({ isOpen, onClose, target }) {
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      document.addEventListener('keydown', handleKeyDown, true);
+      return () => document.removeEventListener('keydown', handleKeyDown, true);
     }
   }, [isOpen, selectedIndex, filteredOptions, search, insertBlock, onClose]);
 
@@ -279,6 +290,7 @@ export function SlashMenu({ isOpen, onClose, target }) {
   return (
     <div
       ref={menuRef}
+      contentEditable={false}
       style={{
         position: 'absolute',
         top: position.top,
@@ -293,6 +305,7 @@ export function SlashMenu({ isOpen, onClose, target }) {
         overflow: 'auto',
       }}
       onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.preventDefault()}
     >
       {filteredOptions.map((option, index) => (
         <div

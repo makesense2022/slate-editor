@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createEditor, Editor, Transforms, Range, Element as SlateElement } from 'slate';
-import { Slate, Editable, withReact } from 'slate-react';
+import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
 import { withHistory } from 'slate-history';
 import { useDebounce } from '../hooks/useDebounce.js';
 import { Toolbar } from './menus/Toolbar.js';
@@ -16,6 +16,23 @@ import { ListElement } from './elements/ListElement.js';
 import { MathElement } from './elements/MathElement.js';
 import { TableElement, TableRowElement, TableCellElement } from './elements/TableElement.js';
 import { proseMirrorToSlate, slateToProseMirror } from '../utils/dataConverter.js';
+import { safeLinkUrl } from '../utils/safeLinkUrl.js';
+const headingTypes = ['heading-one', 'heading-two', 'heading-three', 'heading-four', 'heading-five', 'heading-six'];
+
+function HeadingElement({ attributes, element, children }: any) {
+    const level = headingTypes.indexOf(element.type);
+    const TagName = `h${level + 1}` as 'h1';
+    return <TagName {...attributes} style={{
+        fontSize: ['2em', '1.5em', '1.17em', '1em', '0.83em', '0.67em'][level],
+        fontWeight: 'bold',
+        margin: ['0.67em 0', '0.83em 0', '1em 0', '1.33em 0', '1.67em 0', '2.33em 0'][level],
+    }}>{children}</TagName>;
+}
+
+function ParagraphElement({ attributes, children }: any) {
+    return <p {...attributes} style={{ margin: 0, minHeight: '1.5em' }}>{children}</p>;
+}
+
 /**
  * 主编辑器组件
  * @param {Object} props - 组件属性
@@ -40,22 +57,18 @@ export function EditorComponent({
 }) {
     // 创建编辑器实例，添加 React 和历史记录插件
     const editor = useMemo(
-        () => withHistory(withReact(createEditor())),
+        () => {
+            const instance = withHistory(withReact(createEditor()));
+            const { isInline, isVoid } = instance;
+            instance.isInline = element => element.type === 'math-inline' || isInline(element);
+            instance.isVoid = element => ['image', 'formula-block', 'divider', 'math-inline'].includes(element.type) || isVoid(element);
+            return instance;
+        },
         []
     );
 
-      // 配置编辑器的 void 元素（不可编辑的块级元素）
-  editor.isVoid = (element) => {
-        return element.type === 'image' || element.type === 'formula-block' || element.type === 'divider' || element.type === 'math-inline';
-  };
-
-  // 配置编辑器的块级元素
-  editor.isBlock = (element) => {
-        return element.type !== undefined && element.text === undefined && element.type !== 'math-inline';
-  };
-
     // 将初始数据从 ProseMirror 格式转换为 Slate.js 格式
-  const convertedInitialValue = useMemo(() => {
+  const [convertedInitialValue] = useState(() => {
     try {
       if (initialData) {
         return proseMirrorToSlate(initialData);
@@ -67,7 +80,7 @@ export function EditorComponent({
       console.error('转换初始数据时出错:', error);
       return [{ type: 'paragraph', children: [{ text: '欢迎使用编辑器！' }] }];
     }
-  }, [initialData]);
+  });
 
   // 编辑器状态
   const [value, setValue] = useState(convertedInitialValue);
@@ -79,6 +92,7 @@ export function EditorComponent({
     // 监听触发斜杠菜单事件
     useEffect(() => {
         const handleTriggerSlashMenu = (event) => {
+            if (event.detail?.editor !== editor || readOnly) return;
             const { path } = event.detail;
             setSlashMenuTarget({ path, offset: 0 });
             setShowSlashMenu(true);
@@ -86,13 +100,14 @@ export function EditorComponent({
 
         document.addEventListener('triggerSlashMenu', handleTriggerSlashMenu);
         return () => document.removeEventListener('triggerSlashMenu', handleTriggerSlashMenu);
-    }, []);
+    }, [editor, readOnly]);
   
   // 使用防抖处理内容变更，延迟 1000ms
   const debouncedValue = useDebounce(value, 1000);
+  const lastSavedValue = useRef(convertedInitialValue);
 
       // 保存函数
-  const saveContent = async (content) => {
+  const saveContent = useCallback(async (content) => {
     try {
       // 将 Slate.js 格式转换为后端需要的 ProseMirror 格式
       const proseMirrorData = slateToProseMirror(content);
@@ -104,15 +119,16 @@ export function EditorComponent({
     } catch (error) {
       console.error('保存内容时出错:', error);
     }
-  };
+  }, [onSave]);
 
       // 监听防抖后的值变化，触发自动保存（只读模式下不保存）
   useEffect(() => {
     // 避免初次渲染时就触发保存，只读模式下也不保存
-    if (!readOnly && debouncedValue !== convertedInitialValue) {
+    if (!readOnly && onSave && debouncedValue !== lastSavedValue.current) {
+      lastSavedValue.current = debouncedValue;
       saveContent(debouncedValue);
     }
-  }, [debouncedValue, convertedInitialValue, readOnly]);
+  }, [debouncedValue, onSave, readOnly, saveContent]);
 
     // 渲染不同类型的元素
     const renderElement = useCallback((props) => {
@@ -123,22 +139,12 @@ export function EditorComponent({
 
             switch (element.type) {
       case 'heading-one':
-        ElementComponent = (props) => <h1 {...props.attributes} style={{ fontSize: '2em', fontWeight: 'bold', margin: '0.67em 0' }}>{props.children}</h1>;
-        break;
       case 'heading-two':
-        ElementComponent = (props) => <h2 {...props.attributes} style={{ fontSize: '1.5em', fontWeight: 'bold', margin: '0.83em 0' }}>{props.children}</h2>;
-        break;
       case 'heading-three':
-        ElementComponent = (props) => <h3 {...props.attributes} style={{ fontSize: '1.17em', fontWeight: 'bold', margin: '1em 0' }}>{props.children}</h3>;
-        break;
       case 'heading-four':
-        ElementComponent = (props) => <h4 {...props.attributes} style={{ fontSize: '1em', fontWeight: 'bold', margin: '1.33em 0' }}>{props.children}</h4>;
-        break;
       case 'heading-five':
-        ElementComponent = (props) => <h5 {...props.attributes} style={{ fontSize: '0.83em', fontWeight: 'bold', margin: '1.67em 0' }}>{props.children}</h5>;
-        break;
       case 'heading-six':
-        ElementComponent = (props) => <h6 {...props.attributes} style={{ fontSize: '0.67em', fontWeight: 'bold', margin: '2.33em 0' }}>{props.children}</h6>;
+        ElementComponent = HeadingElement;
         break;
       case 'bulleted-list':
       case 'numbered-list':
@@ -160,7 +166,7 @@ export function EditorComponent({
         ElementComponent = ImageElement;
         break;
       case 'formula-block':
-        ElementComponent = (props) => <FormulaBlock {...props} editor={editor} />;
+        ElementComponent = FormulaBlock;
         break;
             case 'math-inline':
                 ElementComponent = MathElement;
@@ -176,7 +182,7 @@ export function EditorComponent({
                 ElementComponent = TableCellElement;
         break;
       default:
-        ElementComponent = (props) => <p {...props.attributes} style={{ margin: '0', minHeight: '1.5em' }}>{props.children}</p>;
+        ElementComponent = ParagraphElement;
     }
 
         // 对于内联元素（如数学公式）和表格子元素，不使用 BlockWrapper 包装
@@ -195,10 +201,10 @@ export function EditorComponent({
                 readOnly={readOnly}
                 showControls={showBlockControls}
             >
-                <ElementComponent {...props} />
+                <ElementComponent {...props} attributes={{}} editor={editor} />
             </BlockWrapper>
         );
-    }, [editor]);
+    }, [editor, readOnly, showBlockControls]);
 
       // 渲染文本叶子节点（处理内联格式）
   const renderLeaf = useCallback((props) => {
@@ -230,10 +236,11 @@ export function EditorComponent({
     }
 
     // 处理链接
-    if (props.leaf.link && props.leaf.url) {
+    const linkUrl = safeLinkUrl(props.leaf.url);
+    if (props.leaf.link && linkUrl) {
       children = (
         <a
-          href={props.leaf.url}
+          href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
           contentEditable={false}
@@ -245,8 +252,6 @@ export function EditorComponent({
           onClick={(e) => {
             // 阻止事件冒泡到编辑器，但保留默认的链接跳转行为
             e.stopPropagation();
-            // 手动打开链接以确保跳转
-            window.open(props.leaf.url, '_blank', 'noopener,noreferrer');
           }}
           onMouseDown={(e) => {
             // 完全阻止编辑器处理这个事件
@@ -287,7 +292,22 @@ export function EditorComponent({
 
     // 处理键盘快捷键
     const onKeyDown = useCallback((event) => {
+        if (event.nativeEvent.isComposing || ReactEditor.isComposing(editor)) return;
+        // Slate throttles selectionchange; commands need the current DOM range.
+        const domSelection = window.getSelection();
+        if (domSelection?.anchorNode && ReactEditor.hasDOMNode(editor, domSelection.anchorNode, { editable: true })) {
+            const domRange = ReactEditor.toSlateRange(editor, domSelection, { exactMatch: false, suppressThrow: true });
+            if (domRange && (!editor.selection || !Range.equals(editor.selection, domRange))) {
+                Transforms.select(editor, domRange);
+            }
+        }
         const { selection } = editor;
+
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+            event.preventDefault();
+            Transforms.select(editor, { anchor: Editor.start(editor, []), focus: Editor.end(editor, []) });
+            return;
+        }
 
         // 处理删除键 - 如果选中了整个块，删除整个块
         if ((event.key === 'Delete' || event.key === 'Backspace') && selection) {
@@ -340,10 +360,13 @@ export function EditorComponent({
 
                     if (parentNode.children && parentNode.children.length === 1) {
                         // 如果是最后一个块，不删除，而是转换为空段落
-                        Transforms.setNodes(editor, {
+                        Editor.withoutNormalizing(editor, () => {
+                            Transforms.removeNodes(editor, { at: path });
+                            Transforms.insertNodes(editor, {
                             type: 'paragraph',
                             children: [{ text: '' }]
-                        }, { at: path });
+                            }, { at: path, select: true });
+                        });
                     } else {
                         // 删除整个块
                         Transforms.removeNodes(editor, { at: path });
@@ -374,7 +397,7 @@ export function EditorComponent({
 
                         // 使用 setTimeout 确保状态更新完成
                         setTimeout(() => {
-                        setSlashMenuTarget(selection.focus);
+                        setSlashMenuTarget(editor.selection?.focus);
                         setShowSlashMenu(true);
                         }, 0);
                         return; // 让默认行为继续，输入 / 字符
@@ -386,7 +409,7 @@ export function EditorComponent({
         // Ctrl+B 或 Cmd+B 切换粗体
         if ((event.ctrlKey || event.metaKey) && event.key === 'b') {
             event.preventDefault();
-            const isActive = editor.marks?.bold === true;
+            const isActive = Editor.marks(editor)?.bold === true;
             if (isActive) {
                 editor.removeMark('bold');
             } else {
@@ -440,24 +463,21 @@ export function EditorComponent({
                 }
                 // 非空时创建新的同类型项目
                 event.preventDefault();
-                const newElement: any = {
-                    type: type,
-                    children: [{ text: '' }],
-                };
+                editor.insertBreak();
+                const newElement: any = { type };
                 if (type === 'todo-list') {
                     newElement.checked = false;
                 }
-                Transforms.insertNodes(editor, newElement);
+                if (type === 'numbered-list') newElement.listNumber = (block.listNumber ?? 1) + 1;
+                Transforms.setNodes(editor, newElement);
                 return;
             }
 
             // 对于标题，回车后创建普通段落
-            if (['heading-one', 'heading-two', 'heading-three'].includes(type)) {
+            if (type?.startsWith('heading-')) {
                 event.preventDefault();
-                Transforms.insertNodes(editor, {
-                    type: 'paragraph',
-                    children: [{ text: '' }],
-                });
+                editor.insertBreak();
+                Transforms.setNodes(editor, { type: 'paragraph' });
                 return;
             }
 
@@ -491,7 +511,9 @@ export function EditorComponent({
         editor={editor}
         initialValue={convertedInitialValue}
                 onChange={(newValue) => {
-                    setValue(newValue);
+                    if (editor.operations.some(operation => operation.type !== 'set_selection')) {
+                        setValue(newValue);
+                    }
 
                     // 如果内容发生变化，关闭斜杠菜单（除非是刚刚触发菜单的 / 输入）
                     if (showSlashMenu) {

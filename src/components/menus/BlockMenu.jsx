@@ -186,10 +186,15 @@ export function BlockMenu({ isOpen, onClose, blockPath, position }) {
       switch (actionId) {
         case 'duplicate':
           const [node] = Editor.node(editor, blockPath);
-          Transforms.insertNodes(editor, { ...node }, { at: [blockPath[0] + 1] });
+          Transforms.insertNodes(editor, JSON.parse(JSON.stringify(node)), { at: [blockPath[0] + 1] });
           break;
         case 'delete':
-          Transforms.removeNodes(editor, { at: blockPath });
+          Editor.withoutNormalizing(editor, () => {
+            Transforms.removeNodes(editor, { at: blockPath });
+            if (!editor.children.length) {
+              Transforms.insertNodes(editor, { type: 'paragraph', children: [{ text: '' }] }, { at: [0], select: true });
+            }
+          });
           break;
         case 'move-up':
           if (blockPath[0] > 0) {
@@ -205,7 +210,7 @@ export function BlockMenu({ isOpen, onClose, blockPath, position }) {
           if (blockPath[0] < parent.children.length - 1) {
             Transforms.moveNodes(editor, {
               at: blockPath,
-              to: [blockPath[0] + 2],
+              to: [blockPath[0] + 1],
             });
           }
           break;
@@ -245,10 +250,11 @@ export function BlockMenu({ isOpen, onClose, blockPath, position }) {
   return (
     <div
       ref={menuRef}
+      contentEditable={false}
       style={{
         position: 'fixed',
-        left: position?.x || 0,
-        top: position?.y || 0,
+        left: Math.max(8, Math.min(position?.x ?? 8, window.innerWidth - 288)),
+        top: Math.max(8, Math.min(position?.y ?? 8, window.innerHeight - 408)),
         zIndex: 1000,
         backgroundColor: '#fff',
         border: '1px solid #e1e5e9',

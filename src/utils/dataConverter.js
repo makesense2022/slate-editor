@@ -8,17 +8,12 @@
  * @returns {Array} Slate.js 格式的文档
  */
 export function proseMirrorToSlate(proseMirrorDoc) {
-  if (!proseMirrorDoc || !proseMirrorDoc.content) {
+  if (!proseMirrorDoc || !Array.isArray(proseMirrorDoc.content)) {
     return [{ type: 'paragraph', children: [{ text: '' }] }];
   }
 
   const result = [];
   proseMirrorDoc.content.forEach(node => {
-    // 跳过空段落
-    if (node.type === 'paragraph' && (!node.content || node.content.length === 0)) {
-      return;
-    }
-    
     const converted = convertProseMirrorNode(node);
     if (Array.isArray(converted)) {
       // 扁平化处理嵌套数组
@@ -39,7 +34,7 @@ export function proseMirrorToSlate(proseMirrorDoc) {
     }
   });
   
-  return result;
+  return result.length ? result : [{ type: 'paragraph', children: [{ text: '' }] }];
 }
 
 /**
@@ -54,6 +49,7 @@ export function slateToProseMirror(slateNodes) {
   
   slateNodes.forEach(node => {
     if (node.type === 'bulleted-list') {
+      currentOrderedList = null;
       if (!currentBulletList) {
         currentBulletList = {
           type: 'bulletList',
@@ -64,10 +60,11 @@ export function slateToProseMirror(slateNodes) {
       }
       currentBulletList.content.push(convertSlateNode(node));
     } else if (node.type === 'numbered-list') {
+      currentBulletList = null;
       if (!currentOrderedList) {
         currentOrderedList = {
           type: 'orderedList',
-          attrs: { tight: false, start: 1 },
+          attrs: { tight: false, start: Number.isInteger(node.listNumber) ? node.listNumber : 1 },
           content: []
         };
         content.push(currentOrderedList);
@@ -156,7 +153,7 @@ function convertProseMirrorNode(node) {
 
     case 'orderedList':
       const orderedItems = [];
-      const startNumber = node.attrs?.start || 1;
+      const startNumber = node.attrs?.start ?? 1;
       node.content?.forEach((listItem, mainIndex) => {
         // 处理列表项内容
         if (listItem.content && listItem.content.length > 0) {
@@ -218,7 +215,7 @@ function convertProseMirrorNode(node) {
     case 'blockquote':
       return {
         type: 'quote',
-        children: convertProseMirrorContent(node.content || [{ text: '' }])
+        children: convertTableCellContent(node.content || [])
       };
 
     case 'mathNode':
@@ -278,9 +275,12 @@ function convertTableCellContent(content) {
   
   content.forEach(item => {
     if (item.type === 'paragraph') {
+      if (result.length) result.push({ text: '\n' });
       // 对于段落，提取其内容并转换为内联元素
       const paragraphContent = convertProseMirrorContent(item.content || []);
       result.push(...paragraphContent);
+    } else if (['text', 'hardBreak', 'mathNode'].includes(item.type)) {
+      result.push(...convertProseMirrorContent([item]));
     } else {
       // 对于其他类型的内容，使用标准转换
       const converted = convertProseMirrorNode(item);
@@ -377,6 +377,15 @@ function convertSlateNode(node) {
         content: convertSlateContent(node.children)
       };
 
+    case 'heading-four':
+    case 'heading-five':
+    case 'heading-six':
+      return {
+        type: 'heading',
+        attrs: { level: ['four', 'five', 'six'].indexOf(node.type.slice(8)) + 4 },
+        content: convertSlateContent(node.children)
+      };
+
     case 'bulleted-list':
       return {
         type: 'listItem',
@@ -450,13 +459,13 @@ function convertSlateNode(node) {
       return {
         type: 'codeBlock',
         attrs: { language: node.language || 'javascript' },
-        content: convertSlateContent(node.children)
+        content: convertSlateContent(node.children, false)
       };
 
     case 'quote':
       return {
         type: 'blockquote',
-        content: convertSlateContent(node.children)
+        content: [{ type: 'paragraph', content: convertSlateContent(node.children) }]
       };
 
     case 'formula-block':
@@ -498,13 +507,15 @@ function convertSlateNode(node) {
  * @param {Array} children - Slate.js 子节点数组
  * @returns {Array} ProseMirror 内容数组
  */
-function convertSlateContent(children) {
+function convertSlateContent(children, convertLineBreaks = true) {
   if (!children || children.length === 0) {
-    return [{ type: 'text', text: '' }];
+    return [];
   }
 
-  return children.map(child => {
+  return children.flatMap(child => {
     if (child.text !== undefined) {
+      // ProseMirror disallows empty text nodes; empty blocks use content: [].
+      if (!child.text) return [];
       const textNode = {
         type: 'text',
         text: child.text
@@ -526,10 +537,15 @@ function convertSlateContent(children) {
         textNode.marks = marks;
       }
 
-      return textNode;
+      if (!convertLineBreaks) return [textNode];
+      return child.text.split('\n').flatMap((text, index) => [
+        ...(index ? [{ type: 'hardBreak' }] : []),
+        ...(text ? [{ ...textNode, text }] : [])
+      ]);
     }
-    
-    return { type: 'text', text: '' };
+
+    if (child.type === 'math-inline') return [convertSlateNode(child)];
+    return [];
   });
 }
 

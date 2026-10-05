@@ -56,18 +56,22 @@ export function Toolbar() {
         borderBottom: '1px solid #e1e5e9',
         backgroundColor: '#f8f9fa',
         display: 'flex',
+        flexWrap: 'wrap',
         gap: '8px',
         alignItems: 'center',
       }}
     >
       {/* 粗体按钮 */}
       <button
+        type="button"
         onMouseDown={(event) => {
           event.preventDefault();
           toggleBold();
         }}
         style={{
           padding: '6px 12px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
           border: '1px solid #ccc',
           borderRadius: '4px',
           backgroundColor: isMarkActive(editor, 'bold') ? '#007AFF' : '#fff',
@@ -94,12 +98,15 @@ export function Toolbar() {
 
       {/* 插入图片按钮 */}
       <button
+        type="button"
         onMouseDown={(event) => {
           event.preventDefault();
           insertImage();
         }}
         style={{
           padding: '6px 12px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
           border: '1px solid #ccc',
           borderRadius: '4px',
           backgroundColor: '#fff',
@@ -115,12 +122,15 @@ export function Toolbar() {
 
       {/* 插入公式按钮 */}
       <button
+        type="button"
         onMouseDown={(event) => {
           event.preventDefault();
           insertFormula();
         }}
         style={{
           padding: '6px 12px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
           border: '1px solid #ccc',
           borderRadius: '4px',
           backgroundColor: '#fff',
@@ -136,6 +146,7 @@ export function Toolbar() {
 
       {/* 快速插入按钮 */}
       <button
+        type="button"
         onMouseDown={(event) => {
           event.preventDefault();
           const todoElement = {
@@ -147,6 +158,8 @@ export function Toolbar() {
         }}
         style={{
           padding: '6px 12px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
           border: '1px solid #ccc',
           borderRadius: '4px',
           backgroundColor: '#fff',
@@ -161,6 +174,7 @@ export function Toolbar() {
       </button>
 
       <button
+        type="button"
         onMouseDown={(event) => {
           event.preventDefault();
           const quoteElement = {
@@ -171,6 +185,8 @@ export function Toolbar() {
         }}
         style={{
           padding: '6px 12px',
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
           border: '1px solid #ccc',
           borderRadius: '4px',
           backgroundColor: '#fff',

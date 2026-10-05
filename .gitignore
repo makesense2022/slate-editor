@@ -32,3 +32,5 @@ test-results/
 .cache/
 .gradle/
 local.properties
+
+artifacts/consumer/

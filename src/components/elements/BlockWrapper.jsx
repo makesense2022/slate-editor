@@ -59,7 +59,7 @@ export function BlockWrapper({ element, children, attributes, readOnly = false, 
 
         // 触发斜杠菜单 - 通过自定义事件通知编辑器
         const slashEvent = new CustomEvent('triggerSlashMenu', {
-          detail: { path: newPath }
+          detail: { editor, path: newPath }
         });
         document.dispatchEvent(slashEvent);
       }
@@ -158,6 +158,7 @@ export function BlockWrapper({ element, children, attributes, readOnly = false, 
         {/* 拖拽手柄和块级操作按钮容器 - 嵌套列表项、只读模式或禁用控制时不显示 */}
         {!isNestedListItem && !readOnly && showControls && (
           <div
+            contentEditable={false}
             style={{
               position: 'absolute',
               left: '-48px',
@@ -268,12 +269,12 @@ export function BlockWrapper({ element, children, attributes, readOnly = false, 
       </div>
 
       {/* 块级操作菜单 */}
-      <BlockMenu
+      {!readOnly && showControls && <BlockMenu
         isOpen={showMenu}
         onClose={handleCloseMenu}
         blockPath={getBlockPath()}
         position={menuPosition}
-      />
+      />}
     </>
   );
 }

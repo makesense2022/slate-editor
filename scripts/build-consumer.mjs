@@ -1,0 +1,4 @@
+import{build}from'esbuild';import{mkdir,writeFile}from'node:fs/promises';
+await mkdir('artifacts/consumer',{recursive:true});
+await build({entryPoints:['examples/consumer.tsx'],outfile:'artifacts/consumer/app.js',bundle:true,format:'esm',platform:'browser',jsx:'automatic',loader:{'.woff':'dataurl','.woff2':'dataurl','.ttf':'dataurl'},define:{'process.env.NODE_ENV':'"development"'},logLevel:'warning'});
+await writeFile('artifacts/consumer/index.html','<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="./app.css"><style>body{max-width:850px;margin:24px auto;font:16px/1.6 system-ui;padding:16px}button{padding:8px;margin:4px}output{display:block;overflow-wrap:anywhere}</style><div id="root"></div><script type="module" src="./app.js"></script>');

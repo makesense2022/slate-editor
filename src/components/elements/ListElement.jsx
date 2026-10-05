@@ -9,7 +9,7 @@ import React from 'react';
  */
 export function ListElement({ attributes, element, children }) {
   const isNumbered = element.type === 'numbered-list';
-  const listNumber = element.listNumber || 1;
+  const listNumber = element.listNumber ?? 1;
   
   // 检查是否有嵌套的列表项（用于缩进）
   const hasNestedList = React.Children.toArray(children).some(child => 
@@ -33,7 +33,7 @@ export function ListElement({ attributes, element, children }) {
         paddingLeft: `${paddingLeft}px`
       }}
     >
-      <span style={{ 
+      <span contentEditable={false} style={{
         minWidth: '24px',
         marginRight: '8px',
         fontWeight: 'normal',

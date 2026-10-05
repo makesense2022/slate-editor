@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useFocused, useSelected, ReactEditor } from 'slate-react';
+import { useFocused, useSelected, useReadOnly, ReactEditor } from 'slate-react';
 import { Transforms } from 'slate';
 import katex from 'katex';
 // 注意：需要在 root.tsx 或 app.css 中导入 KaTeX CSS
@@ -16,6 +16,7 @@ import katex from 'katex';
 export function FormulaBlock({ attributes, element, children, editor }) {
   const selected = useSelected();
   const focused = useFocused();
+  const readOnly = useReadOnly();
 
   // 使用 useMemo 缓存渲染后的 LaTeX 公式，避免重复计算
   const renderedFormula = useMemo(() => {
@@ -34,6 +35,7 @@ export function FormulaBlock({ attributes, element, children, editor }) {
 
   // 处理双击事件，打开编辑对话框
   const handleDoubleClick = () => {
+    if (readOnly) return;
     const currentLatex = element.latex || '';
     const newLatex = prompt('请输入 LaTeX 公式:', currentLatex);
     
@@ -69,7 +71,7 @@ export function FormulaBlock({ attributes, element, children, editor }) {
           transition: 'border-color 0.2s ease, background-color 0.2s ease',
           position: 'relative',
         }}
-        title="双击编辑公式"
+        title={readOnly ? undefined : '双击编辑公式'}
       >
         {/* 渲染 KaTeX 生成的 HTML */}
         <div
